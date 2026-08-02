@@ -1,0 +1,255 @@
+// Shraddha Darshan — database schema
+//
+// Phase 1 (this file): Category + Product are the tables the frontend needs
+// right now (product listing, detail page, category filters).
+//
+// User / Address / CartItem / WishlistItem / Order / OrderItem / Review are
+// included here too so a single migration provisions the whole data layer.
+// They won't be *used* by any app code until Phase 2 (auth), Phase 3
+// (cart/checkout) and Phase 5 (reviews) — but creating them now avoids
+// piling up migrations later.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+/// Real shop-by-category taxonomy (matches constants/categories.ts on the
+/// frontend, minus the two "virtual" badge-based filters "Best Seller" and
+/// "New" — those stay as a `badge` string on Product, they were never real
+/// categories).
+model Category {
+  id       Int    @id @default(autoincrement())
+  title    String
+  /// used in /collections?category=<slug> and as the unique lookup key
+  slug     String @unique
+  /// lucide-react / react-icons icon name, e.g. "Gift", "Gem" — the
+  /// frontend maps this string back to the actual icon component.
+  icon     String
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  name          String
+  slug          String   @unique
+  description   String   @db.Text
+  /// Postgres native text array — one or more image URLs. Most products
+  /// only have one photo today; this is here so the gallery / thumbnail
+  /// strip on the product page has real data to loop over instead of
+  /// always rendering a single-image gallery.
+  images        String[]
+
+  /// Stored in whole rupees (not paise) to match the existing frontend.
+  /// Convert to paise (× 100) only at the Razorpay integration boundary.
+  price         Int
+  oldPrice      Int?
+
+  categoryId    Int
+  category      Category @relation(fields: [categoryId], references: [id])
+
+  /// Marketing label only (Best Seller / Trending / Premium / ...) —
+  /// NOT a real category. Matches product.badge on the current frontend.
+  badge         String?
+
+  rating        Float    @default(0)
+  reviewsCount  Int      @default(0)
+
+  inStock       Boolean  @default(true)
+  stockQuantity Int      @default(0)
+
+  featured      Boolean  @default(false)
+
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([categoryId])
+}
+
+// ---------------------------------------------------------------------------
+// Users (Phase 2 — auth)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  phone        String?
+  /// Nullable on purpose: leave null if you end up using an OAuth /
+  /// Clerk-style provider instead of email+password.
+  passwordHash String?
+  /// Set once the user clicks the verification link we email on signup.
+  emailVerified DateTime?
+  role          String    @default("CUSTOMER")
+
+
+
+  addresses     Address[]
+  orders        Order[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  reviews       Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Single-use tokens for email verification and password reset — kept
+/// separate from Auth.js's own session handling (we use JWT sessions, so
+/// no Account/Session tables are needed for a Credentials-only setup).
+model VerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  /// "EMAIL_VERIFY" | "PASSWORD_RESET"
+  type      String
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean @default(false)
+
+  orders    Order[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Cart & Wishlist (Phase 3 — server-side, syncs across devices once logged in)
+// ---------------------------------------------------------------------------
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+// ---------------------------------------------------------------------------
+// Orders (Phase 3/4 — checkout + Razorpay)
+// ---------------------------------------------------------------------------
+
+model Order {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+
+  addressId         String?
+  address           Address? @relation(fields: [addressId], references: [id])
+
+  /// PENDING | CONFIRMED | SHIPPED | DELIVERED | CANCELLED
+  status            String   @default("PENDING")
+  /// PENDING | PAID | FAILED | REFUNDED
+  paymentStatus     String   @default("PENDING")
+
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+
+  subtotal          Int
+  shipping          Int      @default(0)
+  total             Int
+
+  items             OrderItem[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    Int
+  product      Product @relation(fields: [productId], references: [id])
+
+  // Snapshotted at purchase time so historic orders stay accurate even if
+  // the product is later renamed, re-priced, or deleted.
+  productName  String
+  productImage String
+  price        Int
+  quantity     Int
+}
+
+// ---------------------------------------------------------------------------
+// Newsletter
+// ---------------------------------------------------------------------------
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Reviews (Phase 5 — v2, schema-ready now so no migration needed later)
+// ---------------------------------------------------------------------------
+
+model Review {
+  id        String   @id @default(cuid())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rating    Int
+  title     String?
+  body      String   @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}

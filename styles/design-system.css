@@ -1,0 +1,154 @@
+/* ================================
+   BRANCH DESIGN SYSTEM v2
+================================ */
+
+/* ---------- Typography ---------- */
+
+.hero-title{
+  font-family:var(--font-heading),sans-serif;
+  font-size:30px;
+  font-weight:700;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+
+.section-title{
+  font-family:var(--font-heading),sans-serif;
+  font-size:26px;
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:-.02em;
+}
+
+.card-title{
+  font-family:var(--font-heading),sans-serif;
+  font-size:20px;
+  font-weight:600;
+  line-height:1.35;
+}
+
+.product-title{
+  font-family:var(--font-heading),sans-serif;
+  font-size:17px;
+  font-weight:600;
+  line-height:1.45;
+}
+
+.price{
+  font-size:18px;
+  font-weight:700;
+  color:#d4af37;
+}
+
+.old-price{
+  font-size:14px;
+  color:#777;
+  text-decoration:line-through;
+}
+
+.body-text{
+  font-size:15px;
+  line-height:1.8;
+  color:#a5a5a5;
+}
+
+.small-text{
+  font-size:13px;
+  line-height:1.6;
+  color:#8b8b8b;
+}
+
+.badge-text{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn-primary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  height:44px;
+  padding:0 24px;
+  border-radius:999px;
+  border:1px solid #d4af37;
+  background:#d4af37;
+  color:#000;
+  font-size:13px;
+  font-weight:600;
+  transition:.3s ease;
+}
+
+.btn-primary:hover{
+  background:#e4c24d;
+  transform:translateY(-2px);
+}
+
+.btn-secondary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  height:44px;
+  padding:0 24px;
+  border-radius:999px;
+  border:1px solid #303030;
+  background:#151515;
+  color:#fff;
+  font-size:13px;
+  font-weight:600;
+  transition:.3s ease;
+}
+
+.btn-secondary:hover{
+  border-color:#d4af37;
+  color:#d4af37;
+}
+
+/* ---------- Cards ---------- */
+
+.card{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  background:#101010;
+  border:1px solid #232323;
+  border-radius:20px;
+  transition:.35s ease;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+  border-color:#d4af37;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);
+}
+
+/* ---------- Layout ---------- */
+
+.section{
+  padding:80px 0;
+}
+
+.container{
+  width:100%;
+  max-width:1280px;
+  margin:0 auto;
+  padding:0 24px;
+}
+
+/* ---------- Radius ---------- */
+
+.radius-sm{border-radius:12px;}
+.radius-md{border-radius:18px;}
+.radius-lg{border-radius:24px;}
+
+/* ---------- Animation ---------- */
+
+.transition{
+  transition:.3s ease;
+}
