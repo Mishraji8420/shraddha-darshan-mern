@@ -82,26 +82,47 @@ const validateForm = () => {
 
   return true;
 };
-
 const handlePlaceOrder = async () => {
   if (!validateForm()) return;
 
   setLoading(true);
 
   try {
-    // Next step me yahin Order API call hogi
-    console.log({
-      customer: form,
-      items,
-      subtotal: cartTotal,
-      shipping: shippingCharge,
-      total: grandTotal,
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address: form,
+        items,
+        subtotal: cartTotal,
+        shipping: shippingCharge,
+        total: grandTotal,
+      }),
     });
 
-    alert("Validation successful. Order API will be connected next.");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to create order");
+    }
+
+    console.log("Order Created:", data.order);
+
+    alert("Order created successfully!");
+
+    // 👉 Next step: Razorpay integration
+    // We'll use data.order.id here.
+
   } catch (error) {
     console.error(error);
-    alert("Something went wrong.");
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong while creating the order."
+    );
   } finally {
     setLoading(false);
   }
