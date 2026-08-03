@@ -88,7 +88,8 @@ const handlePlaceOrder = async () => {
   setLoading(true);
 
   try {
-    const response = await fetch("/api/orders", {
+    // Step 1: Create Order
+    const orderResponse = await fetch("/api/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -102,18 +103,38 @@ const handlePlaceOrder = async () => {
       }),
     });
 
-    const data = await response.json();
+    const orderData = await orderResponse.json();
 
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to create order");
+    if (!orderResponse.ok) {
+      throw new Error(orderData.message || "Failed to create order");
     }
 
-    console.log("Order Created:", data.order);
+    console.log("Database Order:", orderData.order);
 
-    alert("Order created successfully!");
+    // Step 2: Create Razorpay Order
+    const razorpayResponse = await fetch("/api/razorpay/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderId: orderData.order.id,
+      }),
+    });
 
-    // 👉 Next step: Razorpay integration
-    // We'll use data.order.id here.
+    const razorpayData = await razorpayResponse.json();
+
+    if (!razorpayResponse.ok) {
+      throw new Error(
+        razorpayData.message || "Failed to create Razorpay order"
+      );
+    }
+
+    console.log("Razorpay Order:", razorpayData);
+
+    // Next Step:
+    // Razorpay Checkout popup yahin open hoga.
+    alert("Order and Razorpay order created successfully!");
 
   } catch (error) {
     console.error(error);
@@ -121,7 +142,7 @@ const handlePlaceOrder = async () => {
     alert(
       error instanceof Error
         ? error.message
-        : "Something went wrong while creating the order."
+        : "Something went wrong."
     );
   } finally {
     setLoading(false);
