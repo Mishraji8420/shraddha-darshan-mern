@@ -9,6 +9,7 @@ import AnnouncementBar from "@/components/Layout/AnnouncementBar";
 import Navbar from "@/components/Layout/Navbar";
 import Footer from "@/components/Layout/Footer";
 import FloatingWhatsApp from "@/components/common/FloatingWhatsApp";
+import Script from "next/script";
 import {
   BUSINESS,
   DEFAULT_OG_IMAGE,
@@ -124,6 +125,10 @@ export default function RootLayout({
           <Footer />
           <FloatingWhatsApp />
         </Providers>
+        <Script
+  src="https://checkout.razorpay.com/v1/checkout.js"
+  strategy="beforeInteractive"
+/>
       </body>
     </html>
   );
