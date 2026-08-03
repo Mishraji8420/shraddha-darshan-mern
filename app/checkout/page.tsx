@@ -1,5 +1,9 @@
 "use client";
-
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 import { useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { MapPin, Phone, User, Mail, Truck } from "lucide-react";
@@ -88,7 +92,7 @@ const handlePlaceOrder = async () => {
   setLoading(true);
 
   try {
-    // Step 1: Create Order
+    // Step 1 - Create Database Order
     const orderResponse = await fetch("/api/orders", {
       method: "POST",
       headers: {
@@ -109,9 +113,9 @@ const handlePlaceOrder = async () => {
       throw new Error(orderData.message || "Failed to create order");
     }
 
-    console.log("Database Order:", orderData.order);
+    console.log("Database Order:", orderData);
 
-    // Step 2: Create Razorpay Order
+    // Step 2 - Create Razorpay Order
     const razorpayResponse = await fetch("/api/razorpay/create-order", {
       method: "POST",
       headers: {
@@ -124,17 +128,41 @@ const handlePlaceOrder = async () => {
 
     const razorpayData = await razorpayResponse.json();
 
+    console.log("Razorpay Response:", razorpayData);
+
     if (!razorpayResponse.ok) {
       throw new Error(
         razorpayData.message || "Failed to create Razorpay order"
       );
     }
 
-    console.log("Razorpay Order:", razorpayData);
+    // Temporary stop here
+  const options = {
+  key: razorpayData.key,
+  amount: razorpayData.razorpayOrder.amount,
+  currency: razorpayData.razorpayOrder.currency,
+  name: "Shraddha Darshan",
+  description: "Secure Payment",
+  order_id: razorpayData.razorpayOrder.id,
 
-    // Next Step:
-    // Razorpay Checkout popup yahin open hoga.
-    alert("Order and Razorpay order created successfully!");
+  handler: async function (response: any) {
+    console.log(response);
+    alert("Payment Successful!");
+  },
+
+  prefill: {
+    name: form.fullName,
+    email: form.email,
+    contact: form.phone,
+  },
+
+  theme: {
+    color: "#d4af37",
+  },
+};
+
+const razorpay = new window.Razorpay(options);
+razorpay.open();
 
   } catch (error) {
     console.error(error);

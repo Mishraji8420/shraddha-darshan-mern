@@ -5,6 +5,7 @@ import { razorpay } from "@/lib/razorpay";
 
 export async function POST(req: Request) {
   try {
+    // Check Login
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Read Body
     const { orderId } = await req.json();
 
     if (!orderId) {
@@ -33,6 +35,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Find Order
     const order = await prisma.order.findUnique({
       where: {
         id: orderId,
@@ -51,12 +54,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Create Razorpay Order
     const razorpayOrder = await razorpay.orders.create({
-      amount: order.total * 100, // paise
+      amount: order.total * 100, // Amount in paise
       currency: "INR",
       receipt: order.id,
     });
 
+    // Save Razorpay Order ID
     await prisma.order.update({
       where: {
         id: order.id,
@@ -68,9 +73,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      razorpayOrder,
       key: process.env.RAZORPAY_KEY_ID,
+      razorpayOrder,
     });
+
   } catch (error) {
     console.error(error);
 
